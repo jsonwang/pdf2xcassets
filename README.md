@@ -6,12 +6,12 @@
  1. 设计师提交到svn分支
  2. 研发人员更新资源
  3. 研发人员拖到xcassets中
-这样操作我个人感觉还有很麻烦的,很容易出错了.用这个工具设计师在出PDF资源后 直接生成研究人员人的xcassets 提交到分支,开发人员更新就可以得到最新资源,这个工具主要是给设计师用的,后面有时间我会在写一个把xcassets 直接添加到工程当中插件
-
-
-
+这样操作我个人感觉还有很麻烦的,很容易出错了.用这个工具设计师在出PDF资源后 直接生成研究人员人的xcassets 提交到分支,开发人员更新就可以得到最新资源,这个工具主要是给设计师用的.
 
 ## How to use
+![这里写图片描述](http://img.blog.csdn.net/20160320120843970)
+
+设置输入 和输出path 点开始就可以了
 
 
 
@@ -23,4 +23,5 @@
 ## License
 
 This project is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
+
 
