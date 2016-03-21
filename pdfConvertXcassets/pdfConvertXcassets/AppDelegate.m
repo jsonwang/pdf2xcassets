@@ -111,7 +111,7 @@
     NSError *error = nil;
 
     // 3,创建 .imageset目录
-    if ([pdfName hasSuffix:@".pdf"])
+    if ([pdfName hasSuffix:@".pdf"] || [pdfName hasSuffix:@".PDF"])
     {
         if (![fileManager fileExistsAtPath:[self.tagPath.stringValue stringByAppendingPathComponent:path]])
         {
@@ -207,7 +207,7 @@
                 NSString *path = [data objectAtIndex:i];
                 //是目录 要创建目录
 
-                if (![path hasSuffix:@".pdf"])
+                if (!([path hasSuffix:@".pdf"]||[path hasSuffix:@".PDF"]))
                 {
                     directoryName =
                         [directoryName stringByAppendingPathComponent:[path stringByAppendingString:@".xcassets"]];
@@ -284,7 +284,8 @@
 
     while ((direString = [dirEnum nextObject]) != nil)
     {
-        if ([direString hasSuffix:@".pdf"])
+      
+        if ([direString hasSuffix:@".pdf"] || [direString hasSuffix:@".PDF"])
         {
             [mutableFileURLs addObject:direString];
         }
