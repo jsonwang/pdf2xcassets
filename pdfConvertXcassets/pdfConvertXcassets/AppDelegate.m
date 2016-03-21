@@ -12,6 +12,9 @@
 #define KEY_SAVE_TAGPATH @"KEY_SAVE_TAGPATH"
 
 @interface AppDelegate ()
+{
+    NSFileManager *fileManager;
+}
 
 @property(weak) IBOutlet NSWindow *window;
 @property(weak) IBOutlet NSTextField *pdfPath;
@@ -23,6 +26,8 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    fileManager = [NSFileManager defaultManager];
+
     //固定窗口大小
     [self.window setStyleMask:NSTitledWindowMask | NSMiniaturizableWindowMask | NSClosableWindowMask];
 
@@ -67,6 +72,108 @@
                   }];
 }
 
+- (void)createDirectoryWithPath:(NSString *)xcassetsPath
+{
+    NSLog(@"create dir %@", xcassetsPath);
+    // 1,创建 xcassets目录
+    NSError *error = nil;
+    if (![fileManager fileExistsAtPath:xcassetsPath])
+    {
+        [fileManager createDirectoryAtPath:xcassetsPath withIntermediateDirectories:NO attributes:nil error:nil];
+    }
+
+    // 2,写入 xcassets json 配置文件
+
+    /*
+     {
+     "info": {
+     "version":1,
+     "author":"xcode"
+     }
+     }
+     */
+
+    [[self dictionaryToJson:@{
+        @"info" : @{@"version" : @"1", @"author" : @"xcode"}
+    }] writeToFile:[xcassetsPath stringByAppendingPathComponent:@"Contents.json"]
+         atomically:YES
+           encoding:NSUTF8StringEncoding
+              error:&error];
+
+    if (error)
+    {
+        NSLog(@"创建目录失败: %@", error);
+    }
+}
+
+- (void)createPDFWithPath:(NSString *)path pdfName:(NSString *)pdfName pdfOldPath:(NSString *)pdfOldPath
+{
+    NSError *error = nil;
+
+    // 3,创建 .imageset目录
+    if ([pdfName hasSuffix:@".pdf"])
+    {
+        if (![fileManager fileExistsAtPath:[self.tagPath.stringValue stringByAppendingPathComponent:path]])
+        {
+            [fileManager createDirectoryAtPath:[self.tagPath.stringValue stringByAppendingPathComponent:path]
+                   withIntermediateDirectories:NO
+                                    attributes:nil
+                                         error:nil];
+        }
+
+        // 4,写入 imageset json 配置文件
+        /*
+         {
+         "images": [
+         {
+         "idiom": "universal",
+         "filename": "unchecked.pdf"
+         }
+         ],
+         "info": {
+         "version": 1,
+         "author": "xcode"
+         },
+         "properties": {
+         "template-rendering-intent": "template"
+         }
+         }
+         */
+        [[self dictionaryToJson:@{
+            @"images" : @[ @{@"idiom" : @"universal", @"filename" : pdfName} ],
+            @"info" : @{@"version" : @1, @"author" : @"xcode"},
+            @"properties" : @{@"template-rendering-intent" : @"template"}
+        }] writeToFile:[[self.tagPath.stringValue stringByAppendingPathComponent:path]
+                           stringByAppendingPathComponent:@"Contents.json"]
+             atomically:YES
+               encoding:NSUTF8StringEncoding
+                  error:&error];
+
+        // 5,copy pdf to taget finder
+        NSString *copyToPath =
+            [[self.tagPath.stringValue stringByAppendingPathComponent:path] stringByAppendingPathComponent:pdfName];
+        if ([self isExistAtPath:copyToPath])
+        {
+            [fileManager removeItemAtPath:copyToPath error:nil];
+        }
+
+        [fileManager copyItemAtPath:[[self.pdfPath.stringValue stringByAppendingPathComponent:pdfOldPath]
+                                        stringByAppendingPathComponent:pdfName]
+                             toPath:copyToPath
+                              error:&error];
+
+        if (error)
+        {
+            NSLog(@"cp pdf file error: %@", [error localizedDescription]);
+        }
+    }
+
+    else
+    {
+        NSLog(@"pdf file error");
+    }
+}
+
 - (IBAction)createFile:(id)sender
 {
     if (self.pdfPath.stringValue.length > 0 && self.tagPath.stringValue.length > 0)
@@ -78,115 +185,60 @@
 
         NSLog(@"all pdf files %@", [self allFilesAtPath:self.pdfPath.stringValue]);
 
+        /*
+
+         "sample/stats/charts.pdf",
+         "sample/tasks/checked.pdf",
+         "sample/tasks/unchecked.pdf"
+
+         */
+
         for (NSString *str in [self allFilesAtPath:self.pdfPath.stringValue])
         {
             NSArray *data = [str componentsSeparatedByString:@"/"];
 
-            //路径名 用于创建 xcassets目录 存放 .imageset目录
-            NSString *finderName = [data objectAtIndex:0];
+            //路径名 用于创建 xcassets目录 存放 .imageset 就是目录
+            NSString *directoryName = @"";
 
-            //文件名 用于创建 .imageset目录 存放PDF等文件
-            NSString *imagesetName = [data objectAtIndex:1];
+            NSString *pdfOldPath = @"";
 
-            // 1,创建 xcassets目录
-            NSFileManager *fileManager = [NSFileManager defaultManager];
-            NSString *xcassetsPath = [self.tagPath.stringValue
-                stringByAppendingPathComponent:[finderName stringByAppendingString:@".xcassets"]];
-            if (![fileManager fileExistsAtPath:xcassetsPath])
+            for (int i = 0; i < data.count; i++)
             {
-                [fileManager createDirectoryAtPath:xcassetsPath
-                       withIntermediateDirectories:NO
-                                        attributes:nil
-                                             error:nil];
-            }
+                NSString *path = [data objectAtIndex:i];
+                //是目录 要创建目录
 
-            // 2,写入 xcassets json 配置文件
-
-            /*
-             {
-             "info": {
-             "version":1,
-             "author":"xcode"
-             }
-             }
-             */
-            NSError *error;
-            [[self dictionaryToJson:@{
-                @"info" : @{@"version" : @"1", @"author" : @"xcode"}
-            }] writeToFile:[xcassetsPath stringByAppendingPathComponent:@"Contents.json"]
-                 atomically:YES
-                   encoding:NSUTF8StringEncoding
-                      error:&error];
-
-            // 3,创建 .imageset目录
-            if ([imagesetName hasSuffix:@".pdf"])
-            {
-                NSString *imagesetPath =
-
-                    [xcassetsPath
-                        stringByAppendingPathComponent:[[imagesetName
-                                                           substringWithRange:NSMakeRange(0, imagesetName.length - 4)]
-                                                           stringByAppendingString:@".imageset"]];
-
-                if (![fileManager fileExistsAtPath:imagesetPath])
+                if (![path hasSuffix:@".pdf"])
                 {
-                    [fileManager createDirectoryAtPath:imagesetPath
-                           withIntermediateDirectories:NO
-                                            attributes:nil
-                                                 error:nil];
+                    directoryName =
+                        [directoryName stringByAppendingPathComponent:[path stringByAppendingString:@".xcassets"]];
+
+                    pdfOldPath = [pdfOldPath stringByAppendingPathComponent:path];
+
+                    NSString *xcassetsPath = [self.tagPath.stringValue stringByAppendingPathComponent:directoryName];
+                    [self createDirectoryWithPath:xcassetsPath];
                 }
-
-                // 4,写入 imageset json 配置文件
-                /*
-                    {
-                        "images": [
-                            {
-                             "idiom": "universal",
-                             "filename": "unchecked.pdf"
-                            }
-                        ],
-                        "info": {
-                            "version": 1,
-                            "author": "xcode"
-                        },
-                        "properties": {
-                        "template-rendering-intent": "template"
-                        }
-                    }
-                 */
-                [[self dictionaryToJson:@{
-                    @"images" : @[ @{@"idiom" : @"universal", @"filename" : imagesetName} ],
-                    @"info" : @{@"version" : @1, @"author" : @"xcode"},
-                    @"properties" : @{@"template-rendering-intent" : @"template"}
-                }] writeToFile:[imagesetPath stringByAppendingPathComponent:@"Contents.json"]
-                     atomically:YES
-                       encoding:NSUTF8StringEncoding
-                          error:&error];
-
-                // 5,copy pdf to taget finder
-                NSString *copyToPath = [imagesetPath stringByAppendingPathComponent:imagesetName];
-                if ([self isExistAtPath:copyToPath])
+                else
                 {
-                    [fileManager removeItemAtPath:copyToPath error:nil];
-                }
-                [fileManager copyItemAtPath:[self.pdfPath.stringValue stringByAppendingPathComponent:str]
-                                     toPath:copyToPath
-                                      error:&error];
+                    NSString *imagesetPath =
 
-                if (error)
-                {
-                    NSLog(@"%@", [error localizedDescription]);
+                        [directoryName
+                            stringByAppendingPathComponent:[[[data objectAtIndex:i]
+                                                               substringWithRange:NSMakeRange(0, ((NSString *)[data
+                                                                                                      objectAtIndex:i])
+                                                                                                         .length -
+                                                                                                     4)]
+                                                               stringByAppendingString:@".imageset"]];
+                    [self createPDFWithPath:imagesetPath pdfName:[data objectAtIndex:i] pdfOldPath:pdfOldPath];
+
+                    directoryName = @"";
+                    pdfOldPath = @"";
                 }
-            }
-            else
-            {
-                NSLog(@"pdf file error");
             }
         }
 
         //完成提示
         NSAlert *alertDefult = [[NSAlert alloc] init];
-        [alertDefult setMessageText:@"处理完成"];
+        [alertDefult setMessageText:@"导出完成"];
         [alertDefult addButtonWithTitle:@"ok!"];
         [alertDefult runModal];
     }
@@ -253,7 +305,7 @@
 //判断文件是否存在
 - (BOOL)isExistAtPath:(NSString *)filePath
 {
-    NSFileManager *fileManager = [NSFileManager defaultManager];
+    fileManager = [NSFileManager defaultManager];
     BOOL isExist = [fileManager fileExistsAtPath:filePath];
     return isExist;
 }
