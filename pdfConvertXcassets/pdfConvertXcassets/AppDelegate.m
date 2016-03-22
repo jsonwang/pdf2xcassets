@@ -311,6 +311,8 @@
     return isExist;
 }
 
+#pragma mark -
+
 - (void)setApplcationIcon
 {
     NSString *strBundlePath = [[NSBundle mainBundle] bundlePath];
