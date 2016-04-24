@@ -21,7 +21,7 @@
 
 设置输入 和输出path 点开始就可以了
 
-<font color=red>注意:pdf文件目录名中不可以包括.pdf</font> 
+<font color=red>注意:pdf文件目录名中不可以包括.pdf</font>
 
 感觉好用的欢迎标星支持一下.
 
@@ -29,11 +29,9 @@
 
 ## Contact
 
-- [我的博客 http://wangchengak.gitcafe.io/](http://wangchengak.gitcafe.io/)
+- [我的博客 http://jsonwang.github.io/](http://jsonwang.github.io/)
 - 微信号: a287971051
 
 ## License
 
 This project is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
-
-
